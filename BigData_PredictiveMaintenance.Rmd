@@ -1,14 +1,16 @@
 ---
 title: "BigData"
-author: "S. Gräff, S. Greiff, M. Munisi, J. Rauch "
+author: 'S. Gräff, S. Greiff, M. Munisi, J. Rauch, H. Sarikan '
 date: "`r Sys.Date()`"
-output: pdf
+output:
+  word_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-Zunächst werden die benötigten R Packete initialisiert.
+Die R Packete werden initialisiert
 ```{r eval=FALSE}
 library(tidyverse)
 library(caret)
@@ -20,9 +22,7 @@ library(pROC)
 
 ```
 
-Danach wird der Datensatz eingelesen und die für die logistische Regression benötigten Dummy-Variablen erzeugt.
-Bevor die Dummy Variablen erzeugt werden könne, müssen sie in einen Faktor konvertiert werden.
-Anschliesend werden die durch die dummy variablen neu erzegten Spalten an den ursprünglichen Datensatz angehängt.
+Datensatz wird eingelesen und Dummy-Variablen erzeugt
 ```{r eval=FALSE}
 machine_maintenance <- read_csv("machine_predictive_maintenance_classification.csv", col_types = cols())
 
@@ -30,8 +30,7 @@ machine_maintenance$`Failure Type` <- as.factor(machine_maintenance$`Failure Typ
 dummys <- model.matrix(~ `Failure Type` - 1, data = machine_maintenance)
 machine_maintenance <- cbind(machine_maintenance, dummys)
 ```
-Da die Spalten 3, 9 und 10 keine für die Auswertung relevanten Daten enthalten, wollen wir sie in der Modellberechnung ignoriere.
-Wir löschen die Spalten daher im Folgenden aus dem Datensatz.
+Spalten 3,9 und 10 enthalten keine relevanten Daten und werden daher gelöscht
 
 ```{r eval=FALSE}
 # Spalten 2, 9 und 10 als Prädiktoren ignorieren. 

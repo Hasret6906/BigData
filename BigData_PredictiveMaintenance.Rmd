@@ -1,0 +1,94 @@
+---
+title: "BigData"
+author: "S. Gräff, S. Greiff, M. Munisi, J. Rauch "
+date: "`r Sys.Date()`"
+output: pdf
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Zunächst werden die benötigten R Packete initialisiert.
+```{r eval=FALSE}
+library(tidyverse)
+library(caret)
+library(readr)
+library(boot)
+library(ROCR)
+library(nnet)
+library(pROC)
+
+```
+
+Danach wird der Datensatz eingelesen und die für die logistische Regression benötigten Dummy-Variablen erzeugt.
+Bevor die Dummy Variablen erzeugt werden könne, müssen sie in einen Faktor konvertiert werden.
+Anschliesend werden die durch die dummy variablen neu erzegten Spalten an den ursprünglichen Datensatz angehängt.
+```{r eval=FALSE}
+machine_maintenance <- read_csv("machine_predictive_maintenance_classification.csv", col_types = cols())
+
+machine_maintenance$`Failure Type` <- as.factor(machine_maintenance$`Failure Type`)
+dummys <- model.matrix(~ `Failure Type` - 1, data = machine_maintenance)
+machine_maintenance <- cbind(machine_maintenance, dummys)
+```
+Da die Spalten 3, 9 und 10 keine für die Auswertung relevanten Daten enthalten, wollen wir sie in der Modellberechnung ignoriere.
+Wir löschen die Spalten daher im Folgenden aus dem Datensatz.
+
+```{r eval=FALSE}
+# Spalten 2, 9 und 10 als Prädiktoren ignorieren. 
+ignore_columns <- c(2, 9, 10, 12)
+
+# Entferne zu ignorierenden Spalten aus dem Datensatz
+machine_maintenance <- machine_maintenance[, -ignore_columns]
+
+```
+
+Zur besseren Übersicht benennen wir die eingefügten Spalten um.
+```{r eval=FALSE}
+new_column_names <- c(
+  "FT_Heat_Dissipation_Failure", 
+  "FT_Overstrain_Failure", 
+  "FT_Power_Failure", 
+  "FT_Random_Failures", 
+  "FT_Tool_Wear_Failure"
+)
+
+colnames(machine_maintenance)[8:12] <- new_column_names
+
+```
+
+
+```{r eval=FALSE}
+# Definiere Daten und Zielvariablen
+X <- machine_maintenance[, 2:7]  # Input-Variablen aus Spalten 2 bis 7
+y_columns <- c(8, 9, 10, 11, 12)  # Spaltennummern für die Output-Variablen
+
+for (y_col in y_columns) {
+  y <- machine_maintenance[, y_col]  # Die aktuelle Output-Spalte
+  y_col_name <- paste("Output-Spalte", y_col)
+
+  # Aufteilung in Trainings- und Testdaten
+  set.seed(123)
+  indices <- createDataPartition(y, p = 0.7, list = FALSE)
+  X_train <- X[indices, ]
+  X_test <- X[-indices, ]
+  y_train <- y[indices]
+  y_test <- y[-indices]
+
+  # logistisches Regressionsmodell
+  model <- glm(y_train ~ ., data = data.frame(y = y_train, X_train), family = binomial(link = "logit"))
+
+  # Konfusionsmatrix für die Testdaten drucken 
+  y_pred <- ifelse(predict(model, newdata = data.frame(y = y_test, X_test), type = "response") > 0.5, 1, 0)
+  confusion_matrix <- table(Predicted = y_pred, Actual = y_test)
+  cat(sprintf("Konfusionsmatrix für %s:\n", y_col_name))
+  print(confusion_matrix)
+
+  # Speichern des Modells
+  model_filename <- paste("model_", y_col, ".rds", sep = "")
+  saveRDS(model, file = model_filename)
+}
+
+
+```
+
+
